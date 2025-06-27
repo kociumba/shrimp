@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -17,7 +18,8 @@ type Config struct {
 }
 
 type Profile struct {
-	Files []string
+	LastActive time.Time
+	Files      []string
 }
 
 var (
@@ -108,10 +110,14 @@ func AddProfile(name string, force bool) error {
 		return fmt.Errorf("profile %q already exists", name)
 	}
 
-	c.Profiles[name] = Profile{}
+	p := Profile{
+		LastActive: time.Time{},
+	}
 	if len(c.Profiles) == 1 {
 		c.Active = name
+		p.LastActive = time.Now()
 	}
+	c.Profiles[name] = p
 	return SaveConfig(force)
 }
 
@@ -137,6 +143,10 @@ func SetActiveProfile(name string) error {
 	}
 
 	c.Active = name
+
+	p := c.Profiles[name]
+	p.LastActive = time.Now()
+	c.Profiles[name] = p
 
 	return SaveConfig(false)
 }

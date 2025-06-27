@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alecthomas/kong"
 )
@@ -89,11 +90,11 @@ func (l *ListCmd) Run() error {
 		return err
 	}
 	fmt.Println("Profiles:")
-	for key := range c.Profiles {
+	for key, p := range c.Profiles {
 		if key == c.Active {
 			fmt.Printf("  - %q (active)\n", key)
 		} else {
-			fmt.Printf("  - %q\n", key)
+			fmt.Printf("  - %q (last active: %s)\n", key, p.LastActive.Local().Format(time.DateTime))
 		}
 	}
 	return nil
