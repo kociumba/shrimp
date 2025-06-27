@@ -4,33 +4,152 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"os"
 )
 
-// only call after setting c.Active
+type ValidationIssue struct {
+	Type       string // "error", "warning"
+	Operation  string // "activate", "deactivate"
+	Profile    string
+	File       string
+	Message    string
+	Suggestion string
+}
+
+type ValidationResult struct {
+	Issues      []ValidationIssue
+	HasErrors   bool
+	HasWarnings bool
+}
+
+func (vr *ValidationResult) AddError(operation, profile, file, message, suggestion string) {
+	vr.Issues = append(vr.Issues, ValidationIssue{
+		Type:       "error",
+		Operation:  operation,
+		Profile:    profile,
+		File:       file,
+		Message:    message,
+		Suggestion: suggestion,
+	})
+	vr.HasErrors = true
+}
+
+func (vr *ValidationResult) AddWarning(operation, profile, file, message, suggestion string) {
+	vr.Issues = append(vr.Issues, ValidationIssue{
+		Type:       "warning",
+		Operation:  operation,
+		Profile:    profile,
+		File:       file,
+		Message:    message,
+		Suggestion: suggestion,
+	})
+	vr.HasWarnings = true
+}
+
+func (vr *ValidationResult) PrintIssues() {
+	for _, issue := range vr.Issues {
+		prefix := fmt.Sprintf("[%s:%s:%s]", issue.Type, issue.Operation, issue.Profile)
+		if issue.File != "" {
+			fmt.Printf("%s %s (file: %q)\n", prefix, issue.Message, issue.File)
+		} else {
+			fmt.Printf("%s %s\n", prefix, issue.Message)
+		}
+		if issue.Suggestion != "" {
+			fmt.Printf("    -> Suggestion: %s\n", issue.Suggestion)
+		}
+	}
+}
+
+func ValidateProfileActivation(name string, force bool) *ValidationResult {
+	ReadConfig()
+	result := &ValidationResult{}
+
+	if _, ok := c.Profiles[name]; !ok {
+		result.AddError("activate", name, "",
+			fmt.Sprintf("profile %q does not exist", name),
+			"check available profiles with \"list\"")
+		return result
+	}
+
+	for _, f := range c.Profiles[name].Files {
+		disabled := f + "." + name + ".disabled"
+
+		if _, err := os.Stat(disabled); errors.Is(err, fs.ErrNotExist) {
+			result.AddError("activate", name, f,
+				fmt.Sprintf("managed config file is missing: %q", disabled),
+				"check if any the file still exists or was moved")
+			continue
+		}
+
+		if _, err := os.Stat(f); err == nil {
+			if !force {
+				result.AddWarning("activate", name, f,
+					fmt.Sprintf("target %q already exists", f),
+					"use -f flag to overwrite existing file")
+			}
+		}
+	}
+
+	return result
+}
+
+func ValidateProfileDeactivation(force bool) *ValidationResult {
+	ReadConfig()
+	result := &ValidationResult{}
+
+	for n, p := range c.Profiles {
+		if n == c.Active {
+			continue
+		}
+
+		for _, f := range p.Files {
+			disabled := f + "." + n + ".disabled"
+
+			if _, err := os.Stat(f); errors.Is(err, fs.ErrNotExist) {
+				if _, err := os.Stat(disabled); errors.Is(err, fs.ErrNotExist) {
+					result.AddWarning("deactivate", n, f,
+						fmt.Sprintf("path does not exist: %q", f),
+						"consider removing it from the profile configuration")
+				}
+				continue
+			}
+
+			if _, err := os.Stat(disabled); err == nil && !force {
+				result.AddWarning("deactivate", n, f,
+					fmt.Sprintf("target %q already exists", disabled),
+					"use -f flag to overwrite existing disabled file")
+			}
+		}
+	}
+
+	return result
+}
+
+func ValidateProfileSwitch(targetProfile string, force bool) *ValidationResult {
+	deactivateResult := ValidateProfileDeactivation(force)
+	activateResult := ValidateProfileActivation(targetProfile, force)
+
+	combined := &ValidationResult{
+		HasErrors:   deactivateResult.HasErrors || activateResult.HasErrors,
+		HasWarnings: deactivateResult.HasWarnings || activateResult.HasWarnings,
+	}
+	combined.Issues = append(combined.Issues, deactivateResult.Issues...)
+	combined.Issues = append(combined.Issues, activateResult.Issues...)
+
+	return combined
+}
+
 func ActivateProfile(name string, force bool, dry bool) error {
 	ReadConfig()
-	warnings := 0
 
 	if _, ok := c.Profiles[name]; !ok {
 		return fmt.Errorf("profile %q does not exist", name)
 	}
 
-	for _, f := range c.Profiles[c.Active].Files {
-		disabled := f + "." + c.Active + ".disabled"
+	for _, f := range c.Profiles[name].Files {
+		disabled := f + "." + name + ".disabled"
 
-		if _, err := os.Stat(disabled); errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("a managed config file is missing: %q", disabled)
-		}
-
-		if _, err := os.Stat(f); err == nil {
-			if !force {
-				slog.Warn(fmt.Sprintf("target %q already exists, use -f to overwrite", f))
-				warnings++
-				continue
-			}
-
+		if _, err := os.Stat(f); err == nil && force {
 			if !dry {
 				if err := os.RemoveAll(f); err != nil {
 					return fmt.Errorf("failed to remove existing %q: %w", f, err)
@@ -41,14 +160,8 @@ func ActivateProfile(name string, force bool, dry bool) error {
 		if !dry {
 			err := os.Rename(disabled, f)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to activate %q: %w", f, err)
 			}
-		}
-	}
-
-	if !dry { // skip in dry runs, to emit all errors from both activate and deactivate
-		if warnings != 0 {
-			return fmt.Errorf("there were warnings emitted while activating %q", name)
 		}
 	}
 
@@ -57,7 +170,6 @@ func ActivateProfile(name string, force bool, dry bool) error {
 
 func DeactivateAll(force bool, dry bool) error {
 	ReadConfig()
-	warnings := 0
 
 	for n, p := range c.Profiles {
 		if n == c.Active {
@@ -65,37 +177,61 @@ func DeactivateAll(force bool, dry bool) error {
 		}
 
 		for _, f := range p.Files {
-			// f should always be cleaned by the config so it doesn't have trailing /
-			// if it does then this logic breaks for directories
 			disabled := f + "." + n + ".disabled"
 
 			if _, err := os.Stat(f); errors.Is(err, fs.ErrNotExist) {
-				if _, err := os.Stat(disabled); errors.Is(err, fs.ErrNotExist) {
-					slog.Warn(fmt.Sprintf("path does not exist: %q, consider removing it from the profile", f))
-					warnings++
-				}
 				continue
 			}
 
-			if _, err := os.Stat(disabled); err == nil && !force {
-				slog.Warn(fmt.Sprintf("target %q already exists, use -f to overwrite", disabled))
-				warnings++
-				continue
+			if _, err := os.Stat(disabled); err == nil && force {
+				if !dry {
+					if err := os.RemoveAll(disabled); err != nil {
+						return fmt.Errorf("failed to remove existing disabled file %q: %w", disabled, err)
+					}
+				}
 			}
 
 			if !dry {
 				err := os.Rename(f, disabled)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to deactivate %q: %w", f, err)
 				}
 			}
 		}
 	}
 
+	return nil
+}
+
+func SwitchToProfile(targetProfile string, force bool, dry bool) error {
+	validation := ValidateProfileSwitch(targetProfile, force)
+
+	if len(validation.Issues) > 0 {
+		fmt.Printf("Validation found %d issues for profile switch to %q:\n",
+			len(validation.Issues), targetProfile)
+		validation.PrintIssues()
+	}
+
+	if validation.HasErrors {
+		return errors.New("cannot proceed with profile switch due to validation errors")
+	}
+
+	if validation.HasWarnings && !force {
+		return errors.New("cannot proceed with profile switch due to warnings (use -f to force)")
+	}
+
+	if err := DeactivateAll(force, dry); err != nil {
+		return fmt.Errorf("failed to deactivate profiles: %w", err)
+	}
+
+	if err := ActivateProfile(targetProfile, force, dry); err != nil {
+		return fmt.Errorf("failed to activate profile %q: %w", targetProfile, err)
+	}
+
 	if !dry {
-		if warnings != 0 {
-			return errors.New("there were warnings emitted while deactivating all profiles")
-		}
+		fmt.Printf("Successfully switched to profile %q", targetProfile)
+	} else {
+		fmt.Printf("Dry run: would switch to profile %q with no issues detected", targetProfile)
 	}
 
 	return nil

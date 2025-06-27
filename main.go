@@ -51,33 +51,24 @@ type ActivateCmd struct {
 }
 
 func (ac *ActivateCmd) Run() error {
-	save := ""
-	if ac.Dry {
-		ReadConfig()
-		save = c.Active
+	ReadConfig()
+	if ac.Name == c.Active {
+		return fmt.Errorf("profile: %q is already active", ac.Name)
 	}
+
+	save := c.Active
 	err := SetActiveProfile(ac.Name)
 	if err != nil {
 		return err
 	}
-	err = DeactivateAll(ac.Force, ac.Dry)
+
+	err = SwitchToProfile(ac.Name, ac.Force, ac.Dry)
 	if err != nil {
-		return err
-	}
-	err = ActivateProfile(ac.Name, ac.Force, ac.Dry)
-	if err != nil {
-		return err
-	}
-	if ac.Dry {
-		c.Active = save
-		err := SaveConfig(false)
+		err := SetActiveProfile(save)
 		if err != nil {
 			return err
 		}
-	}
-
-	if !ac.Dry {
-		fmt.Printf("Activated profile: %q", ac.Name)
+		return err
 	}
 	return nil
 }
