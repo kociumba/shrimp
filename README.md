@@ -29,7 +29,7 @@ go install github.com/kociumba/shrimp
 
 <details>
     <summary>Install from source</summary>
-    If you want to avoid installing stale versions from the go servers using `go install`, you can clone the repo and use `go install .` in the root of the cloned repo.
+    If you want to avoid installing stale versions from the go servers using <code>go install</code>, you can clone the repo and use <code>go install .</code> in the root of the cloned repo.
 </details>
 </br>
 
@@ -47,7 +47,6 @@ Using shrimp is very simple
     ```shell
     shrimp activate <profile_name>
     ```
-    > [!TIP]
     > switching is guarded by validation, so no destructive operations should run, if you want to be sure only validation is performed, use `-d` or `--dry` flags to perform a dry run
 3. add files which the profile is supposed to manage:
     ```shell
