@@ -9,16 +9,16 @@ import (
 )
 
 type CLI struct {
-	Create   CreateCmd   `cmd:"" help:"create."`
-	Remove   RemoveCmd   `cmd:"" help:"Remove a profile."`
-	Activate ActivateCmd `cmd:"" help:"Activate a profile."`
-	List     ListCmd     `cmd:"" help:"List all profiles."`
+	Create   CreateCmd   `cmd:"" help:"Create a profile"`
+	Remove   RemoveCmd   `cmd:"" help:"Remove a profile"`
+	Activate ActivateCmd `cmd:"" help:"Activate a profile"`
+	List     ListCmd     `cmd:"" help:"List all profiles"`
 	File     FileCmd     `cmd:"" help:"Manage a profile"`
 }
 
 type CreateCmd struct {
-	Name  string `arg:"" required:"" help:"Name of a profile to create."`
-	Force bool   `short:"f" help:"Force creation of a profile."`
+	Name  string `arg:"" required:"" help:"Name of a profile to create"`
+	Force bool   `short:"f" help:"Force creation of a profile"`
 }
 
 func (a *CreateCmd) Run() error {
@@ -31,8 +31,8 @@ func (a *CreateCmd) Run() error {
 }
 
 type RemoveCmd struct {
-	Name  string `arg:"" required:"" help:"Name of a profile to remove."`
-	Force bool   `short:"f" help:"Force delete a profile."`
+	Name  string `arg:"" required:"" help:"Name of a profile to remove"`
+	Force bool   `short:"f" help:"Force delete a profile"`
 }
 
 func (r *RemoveCmd) Run() error {
@@ -45,8 +45,8 @@ func (r *RemoveCmd) Run() error {
 }
 
 type ActivateCmd struct {
-	Name  string `arg:"" required:"" help:"Name of a profile to activate."`
-	Force bool   `short:"f" help:"Force activate a profile, overriting files USE CREAFULLY!."`
+	Name  string `arg:"" required:"" help:"Name of a profile to activate"`
+	Force bool   `short:"f" help:"Force activate a profile, overriting files USE CREAFULLY!"`
 	Dry   bool   `short:"d" help:"Perform a dry-run of activating a profile to test if any issues arise"`
 }
 
@@ -92,13 +92,13 @@ func (l *ListCmd) Run() error {
 }
 
 type FileCmd struct {
-	Add    FileAddCmd    `cmd:"" help:"Add a file to the active profile."`
-	Remove FileRemoveCmd `cmd:"" help:"Remove a file from the active profile."`
-	List   FileListCmd   `cmd:"" help:"List files in the active profile."`
+	Add    FileAddCmd    `cmd:"" help:"Add a file to the active profile"`
+	Remove FileRemoveCmd `cmd:"" help:"Remove a file from the active profile"`
+	List   FileListCmd   `cmd:"" help:"List files in the active profile"`
 }
 
 type FileAddCmd struct {
-	Path string `arg:"" required:"" help:"Path to file to add." type:"path"`
+	Path string `arg:"" required:"" help:"Path to file to add" type:"path"`
 }
 
 func (f *FileAddCmd) Run() error {
@@ -110,7 +110,7 @@ func (f *FileAddCmd) Run() error {
 }
 
 type FileRemoveCmd struct {
-	Path string `arg:"" type:"path" required:"" help:"Path to file to remove."`
+	Path string `arg:"" type:"path" required:"" help:"Path to file to remove"`
 }
 
 func (f *FileRemoveCmd) Run() error {
@@ -158,7 +158,7 @@ func main() {
 	ctx := kong.Parse(&cli,
 		kong.Name("shrimp"),
 		kong.Description("Shrimp is a CLI tool to manage multiple configs with ease."),
-		kong.ShortUsageOnError(),
+		kong.UsageOnError(),
 	)
 
 	err := ctx.Run()
