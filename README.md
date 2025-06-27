@@ -31,7 +31,6 @@ go install github.com/kociumba/shrimp
     <summary>Install from source</summary>
     If you want to avoid installing stale versions from the go servers using <code>go install</code>, you can clone the repo and use <code>go install .</code> in the root of the cloned repo.
 </details>
-</br>
 
 Prebuilt binaries may also be available in releases, depending on when you are reading this 😉
 
