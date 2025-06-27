@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"slices"
 )
 
 type ValidationIssue struct {
@@ -60,6 +61,18 @@ func (vr *ValidationResult) PrintIssues() {
 	}
 }
 
+func isFileManaged(filePath string, excludeProfile string) (bool, string) {
+	for profileName, profile := range c.Profiles {
+		if profileName == excludeProfile {
+			continue
+		}
+		if slices.Contains(profile.Files, filePath) {
+			return true, profileName
+		}
+	}
+	return false, ""
+}
+
 func ValidateProfileActivation(name string, force bool) *ValidationResult {
 	ReadConfig()
 	result := &ValidationResult{}
@@ -82,10 +95,14 @@ func ValidateProfileActivation(name string, force bool) *ValidationResult {
 		}
 
 		if _, err := os.Stat(f); err == nil {
-			if !force {
+			isManaged, _ := isFileManaged(f, name)
+
+			if isManaged {
+				continue
+			} else if !force {
 				result.AddWarning("activate", name, f,
-					fmt.Sprintf("target %q already exists", f),
-					"use -f flag to overwrite existing file")
+					fmt.Sprintf("target %q already exists and is not managed by any other profile", f),
+					"use -f flag to overwrite unmanaged file")
 			}
 		}
 	}
@@ -114,10 +131,26 @@ func ValidateProfileDeactivation(force bool) *ValidationResult {
 				continue
 			}
 
-			if _, err := os.Stat(disabled); err == nil && !force {
-				result.AddWarning("deactivate", n, f,
-					fmt.Sprintf("target %q already exists", disabled),
-					"use -f flag to overwrite existing disabled file")
+			if _, err := os.Stat(disabled); err == nil {
+				continue
+			}
+
+			isManaged, managingProfile := isFileManaged(f, n)
+
+			if isManaged && managingProfile == c.Active {
+				continue
+			}
+
+			if !force {
+				if isManaged {
+					result.AddWarning("deactivate", n, f,
+						fmt.Sprintf("file %q is managed by profile %q, deactivating may cause conflicts", f, managingProfile),
+						"use -f flag to force deactivation")
+				} else {
+					result.AddWarning("deactivate", n, f,
+						fmt.Sprintf("file %q is not managed by any other profile, deactivating may cause loss", f),
+						"use -f flag to force deactivation")
+				}
 			}
 		}
 	}
@@ -183,12 +216,13 @@ func DeactivateAll(force bool, dry bool) error {
 				continue
 			}
 
-			if _, err := os.Stat(disabled); err == nil && force {
-				if !dry {
-					if err := os.RemoveAll(disabled); err != nil {
-						return fmt.Errorf("failed to remove existing disabled file %q: %w", disabled, err)
-					}
-				}
+			if _, err := os.Stat(disabled); err == nil {
+				continue
+			}
+
+			isManaged, managingProfile := isFileManaged(f, n)
+			if isManaged && managingProfile == n {
+				continue
 			}
 
 			if !dry {
