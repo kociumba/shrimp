@@ -54,6 +54,22 @@ Using shrimp is very simple
 
 To see detailed info on all commands use `-h` or `--help` which displays contextual info about a command and all of it's flags
 
+### Scope of the config
+
+By default shrimp uses a global config in `~/.config/shrimp/shrimp.toml`, this has the issue that every profile needs to account for any file that might change between them, as shrimp disables all files in a profile when it's deactivated.
+
+Let's say you want to manage a local `.editorconfig` or configs in `.vscode`, adding them to the global profiles would require you to add them to *every* profile where you need them
+
+This issue is solved using the `-c` or `--config=PATH` flag, you can provide it with any command like so:
+
+```shell
+shrimp c <profile_name> -c ./config # uses the shorthand c for create
+```
+
+This would create a profile as usual, but it would be stored and operated from a `./config/shrimp.toml` file instead of the global one.
+
+Think of it this way: profiles within a config are exclusive (only files from a single profile can be active at once). By using a local config you can avoid running into issues with the exclusivity at the global level
+
 ## How it works
 
 shrimp has a very simple operating principle, it doesn't do any git integration or special storage for managed files and directories.

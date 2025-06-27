@@ -8,11 +8,17 @@ import (
 	"github.com/alecthomas/kong"
 )
 
+type Globals struct {
+	Config string `type:"path" short:"c" help:"a path to use for a non global config file"`
+}
+
 type CLI struct {
-	Create   CreateCmd   `cmd:"" help:"Create a profile"`
-	Remove   RemoveCmd   `cmd:"" help:"Remove a profile"`
-	Activate ActivateCmd `cmd:"" help:"Activate a profile"`
-	List     ListCmd     `cmd:"" help:"List all profiles"`
+	Globals
+
+	Create   CreateCmd   `cmd:"" aliases:"c" help:"Create a profile"`
+	Remove   RemoveCmd   `cmd:"" aliases:"r" help:"Remove a profile"`
+	Activate ActivateCmd `cmd:"" aliases:"a" help:"Activate a profile"`
+	List     ListCmd     `cmd:"" aliases:"l" help:"List all profiles"`
 	File     FileCmd     `cmd:"" help:"Manage a profile"`
 }
 
@@ -21,8 +27,8 @@ type CreateCmd struct {
 	Force bool   `short:"f" help:"Force creation of a profile"`
 }
 
-func (a *CreateCmd) Run() error {
-	err := AddProfile(a.Name, a.Force)
+func (a *CreateCmd) Run(globals *Globals) error {
+	err := AddProfile(a.Name, a.Force, globals.Config)
 	if err != nil {
 		return err
 	}
@@ -35,8 +41,8 @@ type RemoveCmd struct {
 	Force bool   `short:"f" help:"Force delete a profile"`
 }
 
-func (r *RemoveCmd) Run() error {
-	err := RemoveProfile(r.Name, r.Force)
+func (r *RemoveCmd) Run(globals *Globals) error {
+	err := RemoveProfile(r.Name, r.Force, globals.Config)
 	if err != nil {
 		return err
 	}
@@ -50,21 +56,21 @@ type ActivateCmd struct {
 	Dry   bool   `short:"d" help:"Perform a dry-run of activating a profile to test if any issues arise"`
 }
 
-func (ac *ActivateCmd) Run() error {
-	ReadConfig()
+func (ac *ActivateCmd) Run(globals *Globals) error {
+	ReadConfig(globals.Config)
 	if ac.Name == c.Active {
 		return fmt.Errorf("profile: %q is already active", ac.Name)
 	}
 
 	save := c.Active
-	err := SetActiveProfile(ac.Name)
+	err := SetActiveProfile(ac.Name, globals.Config)
 	if err != nil {
 		return err
 	}
 
 	err = SwitchToProfile(ac.Name, ac.Force, ac.Dry)
 	if err != nil {
-		err := SetActiveProfile(save)
+		err := SetActiveProfile(save, globals.Config)
 		if err != nil {
 			return err
 		}
@@ -75,8 +81,8 @@ func (ac *ActivateCmd) Run() error {
 
 type ListCmd struct{}
 
-func (l *ListCmd) Run() error {
-	err := ReadConfig()
+func (l *ListCmd) Run(globals *Globals) error {
+	err := ReadConfig(globals.Config)
 	if err != nil {
 		return err
 	}
@@ -92,44 +98,44 @@ func (l *ListCmd) Run() error {
 }
 
 type FileCmd struct {
-	Add    FileAddCmd    `cmd:"" help:"Add a file to the active profile"`
-	Remove FileRemoveCmd `cmd:"" help:"Remove a file from the active profile"`
-	List   FileListCmd   `cmd:"" help:"List files in the active profile"`
+	Add    FileAddCmd    `cmd:"" aliases:"a" help:"Add a file to the active profile"`
+	Remove FileRemoveCmd `cmd:"" aliases:"r" help:"Remove a file from the active profile"`
+	List   FileListCmd   `cmd:"" aliases:"l" help:"List files in the active profile"`
 }
 
 type FileAddCmd struct {
 	Path string `arg:"" required:"" help:"Path to file to add" type:"path"`
 }
 
-func (f *FileAddCmd) Run() error {
-	err := IsProfileActive()
+func (f *FileAddCmd) Run(globals *Globals) error {
+	err := IsProfileActive(globals.Config)
 	if err != nil {
 		return err
 	}
-	return AddFileToActiveProfile(f.Path)
+	return AddFileToActiveProfile(f.Path, globals.Config)
 }
 
 type FileRemoveCmd struct {
 	Path string `arg:"" type:"path" required:"" help:"Path to file to remove"`
 }
 
-func (f *FileRemoveCmd) Run() error {
-	err := IsProfileActive()
+func (f *FileRemoveCmd) Run(globals *Globals) error {
+	err := IsProfileActive(globals.Config)
 	if err != nil {
 		return err
 	}
-	return RemoveFileFromActiveProfile(f.Path)
+	return RemoveFileFromActiveProfile(f.Path, globals.Config)
 }
 
 type FileListCmd struct{}
 
-func (f *FileListCmd) Run() error {
-	err := ReadConfig()
+func (f *FileListCmd) Run(globals *Globals) error {
+	err := ReadConfig(globals.Config)
 	if err != nil {
 		return err
 	}
 
-	err = IsProfileActive()
+	err = IsProfileActive(globals.Config)
 	if err != nil {
 		return err
 	}
@@ -145,22 +151,23 @@ func (f *FileListCmd) Run() error {
 	return nil
 }
 
-func IsProfileActive() error {
-	ReadConfig()
+func IsProfileActive(path string) error {
+	ReadConfig(path)
 	if c.Active == "" {
 		return errors.New("no active profile, use \"shrimp activate <profile>\" to set the active profile")
 	}
 	return nil
 }
 
+var cli CLI
+
 func main() {
-	var cli CLI
 	ctx := kong.Parse(&cli,
 		kong.Name("shrimp"),
 		kong.Description("Shrimp is a CLI tool to manage multiple configs with ease."),
 		kong.UsageOnError(),
 	)
 
-	err := ctx.Run()
+	err := ctx.Run(&cli.Globals)
 	ctx.FatalIfErrorf(err)
 }

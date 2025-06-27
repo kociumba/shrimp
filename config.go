@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
@@ -33,6 +34,14 @@ func getConfigPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(h, ".config", "shrimp", "shrimp.toml"), nil
+}
+
+func (c *Config) DefaultPath() string {
+	p, err := getConfigPath()
+	if err != nil {
+		fmt.Println(fmt.Errorf("failed to get default config path: %w", err))
+	}
+	return p
 }
 
 func getConfigDir(force bool) (string, error) {
@@ -62,15 +71,18 @@ func getConfigDir(force bool) (string, error) {
 	return cfg, nil
 }
 
-func SaveConfig(force bool) error {
+func SaveConfig(path string, force bool) error {
 	_, err := getConfigDir(force)
 	if err != nil {
 		return err
 	}
 
-	path, err := getConfigPath()
-	if err != nil {
-		return err
+	if path == "" {
+		path = c.DefaultPath()
+	} else {
+		if !strings.Contains(filepath.Base(path), ".") { // could be better but idc
+			path = filepath.Join(path, "shrimp.toml")
+		}
 	}
 
 	b, err := toml.Marshal(c)
@@ -83,10 +95,13 @@ func SaveConfig(force bool) error {
 	return nil
 }
 
-func ReadConfig() error {
-	path, err := getConfigPath()
-	if err != nil {
-		return err
+func ReadConfig(path string) error {
+	if path == "" {
+		path = c.DefaultPath()
+	} else {
+		if !strings.Contains(filepath.Base(path), ".") { // could be better but idc
+			path = filepath.Join(path, "shrimp.toml")
+		}
 	}
 
 	data, err := os.ReadFile(path)
@@ -99,8 +114,8 @@ func ReadConfig() error {
 	return nil
 }
 
-func AddProfile(name string, force bool) error {
-	ReadConfig() // read ignoring errors
+func AddProfile(name string, force bool, path string) error {
+	ReadConfig(path) // read ignoring errors
 
 	if c.Profiles == nil {
 		c.Profiles = make(map[string]Profile)
@@ -113,16 +128,16 @@ func AddProfile(name string, force bool) error {
 	p := Profile{
 		LastActive: time.Time{},
 	}
-	if len(c.Profiles) == 1 {
+	if len(c.Profiles) == 0 {
 		c.Active = name
 		p.LastActive = time.Now()
 	}
 	c.Profiles[name] = p
-	return SaveConfig(force)
+	return SaveConfig(path, force)
 }
 
-func RemoveProfile(name string, force bool) error {
-	ReadConfig()
+func RemoveProfile(name string, force bool, path string) error {
+	ReadConfig(path)
 
 	if _, exists := c.Profiles[name]; !exists {
 		return fmt.Errorf("profile %q, does not exist", name)
@@ -132,11 +147,11 @@ func RemoveProfile(name string, force bool) error {
 	if c.Active == name {
 		c.Active = ""
 	}
-	return SaveConfig(force)
+	return SaveConfig(path, force)
 }
 
-func SetActiveProfile(name string) error {
-	ReadConfig()
+func SetActiveProfile(name string, path string) error {
+	ReadConfig(path)
 
 	if _, exists := c.Profiles[name]; !exists {
 		return fmt.Errorf("profile %q, does not exist", name)
@@ -148,11 +163,11 @@ func SetActiveProfile(name string) error {
 	p.LastActive = time.Now()
 	c.Profiles[name] = p
 
-	return SaveConfig(false)
+	return SaveConfig(path, false)
 }
 
-func AddFileToActiveProfile(path string) error {
-	ReadConfig()
+func AddFileToActiveProfile(path string, pathCFG string) error {
+	ReadConfig(path)
 
 	path, err := ExpandPath(path)
 	if err != nil {
@@ -174,11 +189,11 @@ func AddFileToActiveProfile(path string) error {
 
 	fmt.Printf("path: %q, added to profile: %q", path, c.Active)
 
-	return SaveConfig(false)
+	return SaveConfig(pathCFG, false)
 }
 
-func RemoveFileFromActiveProfile(path string) error {
-	ReadConfig()
+func RemoveFileFromActiveProfile(path string, pathCFG string) error {
+	ReadConfig(path)
 
 	path, err := ExpandPath(path)
 	if err != nil {
@@ -205,5 +220,5 @@ func RemoveFileFromActiveProfile(path string) error {
 
 	fmt.Printf("path: %q, removed from profile: %q", path, c.Active)
 
-	return SaveConfig(false)
+	return SaveConfig(pathCFG, false)
 }

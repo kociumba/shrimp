@@ -74,7 +74,7 @@ func isFileManaged(filePath string, excludeProfile string) (bool, string) {
 }
 
 func ValidateProfileActivation(name string, force bool) *ValidationResult {
-	ReadConfig()
+	ReadConfig(cli.Globals.Config)
 	result := &ValidationResult{}
 
 	if _, ok := c.Profiles[name]; !ok {
@@ -111,7 +111,7 @@ func ValidateProfileActivation(name string, force bool) *ValidationResult {
 }
 
 func ValidateProfileDeactivation(force bool) *ValidationResult {
-	ReadConfig()
+	ReadConfig(cli.Globals.Config)
 	result := &ValidationResult{}
 
 	for n, p := range c.Profiles {
@@ -141,11 +141,12 @@ func ValidateProfileDeactivation(force bool) *ValidationResult {
 				continue
 			}
 
-			if !isManaged && !force {
-				result.AddWarning("deactivate", n, f,
-					fmt.Sprintf("file %q is not managed by any other profile, deactivating may cause loss", f),
-					"use -f flag to force deactivation")
-			}
+			// this condition is just unnescessary why the fuck did it end up here
+			// if !isManaged && !force {
+			// 	result.AddWarning("deactivate", n, f,
+			// 		fmt.Sprintf("file %q is not managed by any other profile, deactivating may cause loss", f),
+			// 		"use -f flag to force deactivation")
+			// }
 		}
 	}
 
@@ -167,7 +168,7 @@ func ValidateProfileSwitch(targetProfile string, force bool) *ValidationResult {
 }
 
 func ActivateProfile(name string, force bool, dry bool) error {
-	ReadConfig()
+	ReadConfig(cli.Globals.Config)
 
 	if _, ok := c.Profiles[name]; !ok {
 		return fmt.Errorf("profile %q does not exist", name)
@@ -196,7 +197,7 @@ func ActivateProfile(name string, force bool, dry bool) error {
 }
 
 func DeactivateAll(force bool, dry bool) error {
-	ReadConfig()
+	ReadConfig(cli.Globals.Config)
 
 	for n, p := range c.Profiles {
 		if n == c.Active {
