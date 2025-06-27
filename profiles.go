@@ -141,16 +141,10 @@ func ValidateProfileDeactivation(force bool) *ValidationResult {
 				continue
 			}
 
-			if !force {
-				if isManaged {
-					result.AddWarning("deactivate", n, f,
-						fmt.Sprintf("file %q is managed by profile %q, deactivating may cause conflicts", f, managingProfile),
-						"use -f flag to force deactivation")
-				} else {
-					result.AddWarning("deactivate", n, f,
-						fmt.Sprintf("file %q is not managed by any other profile, deactivating may cause loss", f),
-						"use -f flag to force deactivation")
-				}
+			if !isManaged && !force {
+				result.AddWarning("deactivate", n, f,
+					fmt.Sprintf("file %q is not managed by any other profile, deactivating may cause loss", f),
+					"use -f flag to force deactivation")
 			}
 		}
 	}
