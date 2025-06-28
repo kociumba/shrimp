@@ -23,7 +23,7 @@ shrimp activate <profile_name>
 
 ### Prerequisites
 
-You will need go installed (see [Go installation guide](https://go.dev/doc/install))
+You will need go installed (version 1.21.0 and up, see [Go installation guide](https://go.dev/doc/install))
 
 ### shrimp installation
 
