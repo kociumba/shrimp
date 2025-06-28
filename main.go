@@ -18,6 +18,7 @@ type CLI struct {
 	Create   CreateCmd   `cmd:"" aliases:"c" help:"Create a profile"`
 	Remove   RemoveCmd   `cmd:"" aliases:"r" help:"Remove a profile"`
 	Activate ActivateCmd `cmd:"" aliases:"a" help:"Activate a profile"`
+	Reaload  ReloadCmd   `cmd:"" aliases:"re" help:"reload the current active profile"`
 	List     ListCmd     `cmd:"" aliases:"l" help:"List all profiles"`
 	File     FileCmd     `cmd:"" aliases:"f" help:"Manage a profile"`
 	Hook     HookCmd     `cmd:"" aliases:"h" help:"allows for editing pre and post profile activation hooks"`
@@ -69,7 +70,7 @@ func (ac *ActivateCmd) Run(globals *Globals) error {
 		return err
 	}
 
-	err = ExecutePre(globals.Config)
+	err = ExecutePre(globals.Config, ac.Dry)
 	if err != nil {
 		if err := SetActiveProfile(save, globals.Config); err != nil {
 			return err
@@ -85,7 +86,34 @@ func (ac *ActivateCmd) Run(globals *Globals) error {
 		return err
 	}
 
-	err = ExecutePost(globals.Config)
+	err = ExecutePost(globals.Config, ac.Dry)
+	if err != nil {
+		if err := SetActiveProfile(save, globals.Config); err != nil {
+			return err
+		}
+		return err
+	}
+
+	return nil
+}
+
+type ReloadCmd struct {
+	Dry bool `short:"d" help:"Perform a dry-run of activating a profile to test if any issues arise"`
+}
+
+func (rc *ReloadCmd) Run(globals *Globals) error {
+	ReadConfig(globals.Config)
+	save := c.Active
+
+	err := ExecutePre(globals.Config, rc.Dry)
+	if err != nil {
+		if err := SetActiveProfile(save, globals.Config); err != nil {
+			return err
+		}
+		return err
+	}
+
+	err = ExecutePost(globals.Config, rc.Dry)
 	if err != nil {
 		if err := SetActiveProfile(save, globals.Config); err != nil {
 			return err

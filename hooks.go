@@ -5,7 +5,7 @@ import (
 	"os/exec"
 )
 
-func ExecutePre(path string) error {
+func ExecutePre(path string, dry bool) error {
 	ReadConfig(path)
 
 	var p = c.Profiles[c.Active]
@@ -13,16 +13,18 @@ func ExecutePre(path string) error {
 		cmd := exec.Command(p.PreActivate[0], p.PreActivate[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			return err
+		if !dry {
+			err := cmd.Run()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func ExecutePost(path string) error {
+func ExecutePost(path string, dry bool) error {
 	ReadConfig(path)
 
 	var p = c.Profiles[c.Active]
@@ -30,9 +32,11 @@ func ExecutePost(path string) error {
 		cmd := exec.Command(p.PostActivate[0], p.PostActivate[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			return err
+		if !dry {
+			err := cmd.Run()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
