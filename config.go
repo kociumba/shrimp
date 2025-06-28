@@ -244,3 +244,17 @@ func SetPostHook(path string, cmd []string) error {
 
 	return SaveConfig(path, false)
 }
+
+func CloneProfile(new, old, path string) error {
+	ReadConfig(path)
+
+	target := old
+	if old == "" {
+		target = c.Active
+	}
+
+	p := c.Profiles[target]
+	c.Profiles[new] = p
+
+	return SaveConfig(path, false)
+}

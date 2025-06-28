@@ -19,6 +19,7 @@ type CLI struct {
 	Remove   RemoveCmd   `cmd:"" aliases:"r" help:"Remove a profile"`
 	Activate ActivateCmd `cmd:"" aliases:"a" help:"Activate a profile"`
 	Reaload  ReloadCmd   `cmd:"" aliases:"re" help:"reload the current active profile"`
+	Clone    CloneCmd    `cmd:"" aliases:"cl" help:"clone a profile, to save time when creating new ones"`
 	List     ListCmd     `cmd:"" aliases:"l" help:"List all profiles"`
 	File     FileCmd     `cmd:"" aliases:"f" help:"Manage a profile"`
 	Hook     HookCmd     `cmd:"" aliases:"h" help:"allows for editing pre and post profile activation hooks"`
@@ -118,6 +119,20 @@ func (rc *ReloadCmd) Run(globals *Globals) error {
 		if err := SetActiveProfile(save, globals.Config); err != nil {
 			return err
 		}
+		return err
+	}
+
+	return nil
+}
+
+type CloneCmd struct {
+	NewName string `arg:"" required:"" help:"name of the clone profile"`
+	Name    string `arg:"" optional:"" help:"name of the profile that will be cloned, if left empty clones the active profile"`
+}
+
+func (c *CloneCmd) Run(globals *Globals) error {
+	err := CloneProfile(c.NewName, c.Name, globals.Config)
+	if err != nil {
 		return err
 	}
 
