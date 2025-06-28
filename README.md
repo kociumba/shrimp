@@ -21,7 +21,13 @@ shrimp activate <profile_name>
 
 ## Installation
 
-To install shrimp use go:
+### Prerequisites
+
+You will need go installed (see [Go installation guide](https://go.dev/doc/install))
+
+### shrimp installation
+
+Simply use `go install` to get shrimp:
 
 ```shell
 go install github.com/kociumba/shrimp
