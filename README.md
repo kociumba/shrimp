@@ -2,7 +2,7 @@
 
 shrimp is a minimal cross-platform CLI profile manager for arbitrary files, particularly useful for configs.
 
-Have you ever set up a window manager, and wanted to have multiple configs at once. This is exactly what shrimp solves.
+Have you ever set up a window manager, and wanted to have multiple configs at once? This is exactly what shrimp solves.
 
 shrimp works on the concept of profiles, you create them using:
 
@@ -52,7 +52,7 @@ Using shrimp is very simple
     shrimp file add <path_to_file>
     ```
 
-To see detailed info on all commands use `-h` or `--help` which displays contextual info about a command and all of it's flags
+To see detailed info on all commands, use `-h` or `--help` which displays contextual info about a command and all of its flags
 
 ### Scope of the config
 
@@ -68,7 +68,7 @@ shrimp c <profile_name> -c ./config # uses the shorthand c for create
 
 This would create a profile as usual, but it would be stored and operated from a `./config/shrimp.toml` file instead of the global one.
 
-Think of it this way: profiles within a config are exclusive (only files from a single profile can be active at once). By using a local config you can avoid running into issues with the exclusivity at the global level
+Think of it this way: profiles within a config are exclusive (only one profile's files can be active at a time). By using a local config you can avoid running into issues with the exclusivity at the global level
 
 ### Hooks
 
@@ -86,7 +86,7 @@ This method is good if you want to set up quick and simple hooks, for more compl
 shrimp hook post -- pwsh -NoProfile -File ~/scripts/cleanup.ps1
 ```
 
-It is recommended to use `--` to pass these commands to shrimp since this allows shrimp to freefly treat everything after `--` as part of the command.
+It is recommended to use `--` to pass these commands to shrimp since this allows shrimp to freely treat everything after `--` as part of the command.
 
 ## How it works
 
@@ -94,7 +94,7 @@ shrimp has a very simple operating principle, it doesn't do any git integration 
 
 When a profile is deactivated all files and directories managed by it are renamed like so: `~/some.file` -> `~/some.file.profile_name.disabled`, when a profile is activated all of its files are restored to their original names.
 
-This simple principle makes sure the potential for data loss is as low as possible, and no complex operations have to be performed.
+This simple approach ensures the potential for data loss is minimal and avoids complex operations.
 
 ### Git integration ?
 
