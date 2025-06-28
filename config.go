@@ -19,8 +19,10 @@ type Config struct {
 }
 
 type Profile struct {
-	LastActive time.Time
-	Files      []string
+	LastActive   time.Time
+	Files        []string
+	PreActivate  []string
+	PostActivate []string
 }
 
 var (
@@ -221,4 +223,24 @@ func RemoveFileFromActiveProfile(path string, pathCFG string) error {
 	fmt.Printf("path: %q, removed from profile: %q", path, c.Active)
 
 	return SaveConfig(pathCFG, false)
+}
+
+func SetPreHook(path string, cmd []string) error {
+	ReadConfig(path)
+
+	p := c.Profiles[c.Active]
+	p.PreActivate = cmd
+	c.Profiles[c.Active] = p
+
+	return SaveConfig(path, false)
+}
+
+func SetPostHook(path string, cmd []string) error {
+	ReadConfig(path)
+
+	p := c.Profiles[c.Active]
+	p.PostActivate = cmd
+	c.Profiles[c.Active] = p
+
+	return SaveConfig(path, false)
 }

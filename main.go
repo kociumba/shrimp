@@ -19,7 +19,8 @@ type CLI struct {
 	Remove   RemoveCmd   `cmd:"" aliases:"r" help:"Remove a profile"`
 	Activate ActivateCmd `cmd:"" aliases:"a" help:"Activate a profile"`
 	List     ListCmd     `cmd:"" aliases:"l" help:"List all profiles"`
-	File     FileCmd     `cmd:"" help:"Manage a profile"`
+	File     FileCmd     `cmd:"" aliases:"f" help:"Manage a profile"`
+	Hook     HookCmd     `cmd:"" aliases:"h" help:"allows for editing pre and post profile activation hooks"`
 }
 
 type CreateCmd struct {
@@ -68,14 +69,30 @@ func (ac *ActivateCmd) Run(globals *Globals) error {
 		return err
 	}
 
-	err = SwitchToProfile(ac.Name, ac.Force, ac.Dry)
+	err = ExecutePre(globals.Config)
 	if err != nil {
-		err := SetActiveProfile(save, globals.Config)
-		if err != nil {
+		if err := SetActiveProfile(save, globals.Config); err != nil {
 			return err
 		}
 		return err
 	}
+
+	err = SwitchToProfile(ac.Name, ac.Force, ac.Dry)
+	if err != nil {
+		if err := SetActiveProfile(save, globals.Config); err != nil {
+			return err
+		}
+		return err
+	}
+
+	err = ExecutePost(globals.Config)
+	if err != nil {
+		if err := SetActiveProfile(save, globals.Config); err != nil {
+			return err
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -148,6 +165,37 @@ func (f *FileListCmd) Run(globals *Globals) error {
 	for _, file := range c.Profiles[c.Active].Files {
 		fmt.Printf("  - %q\n", file)
 	}
+	return nil
+}
+
+type HookCmd struct {
+	Pre  PreCmd  `cmd:"" help:"edit pre profile activation hooks"`
+	Post PostCmd `cmd:"" help:"edit post profile activation hooks"`
+}
+
+type PreCmd struct {
+	Cmd []string `arg:"" help:"commands to execute" default:""`
+}
+
+func (p *PreCmd) Run(globals *Globals) error {
+	err := SetPreHook(globals.Config, p.Cmd)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type PostCmd struct {
+	Cmd []string `arg:"" help:"commands to execute" default:""`
+}
+
+func (p *PostCmd) Run(globals *Globals) error {
+	err := SetPostHook(globals.Config, p.Cmd)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
