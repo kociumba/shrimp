@@ -70,11 +70,29 @@ This would create a profile as usual, but it would be stored and operated from a
 
 Think of it this way: profiles within a config are exclusive (only files from a single profile can be active at once). By using a local config you can avoid running into issues with the exclusivity at the global level
 
+### Hooks
+
+Some config changes need to be reloaded or can only be performed when an app is not running, to achieve this you can use pre/post activate hooks in shrimp
+
+To set them for the active profile using the `hook` command:
+
+```shell
+shrimp hook pre -- sh -c "echo pre activation hook"
+```
+
+This method is good if you want to set up quick and simple hooks, for more complex pre and post hooks it is recommended to use shell files like so:
+
+```shell
+shrimp hook post -- pwsh -NoProfile -File ~/scripts/cleanup.ps1
+```
+
+It is recommended to use `--` to pass these commands to shrimp since this allows shrimp to freefly treat everything after `--` as part of the command.
+
 ## How it works
 
 shrimp has a very simple operating principle, it doesn't do any git integration or special storage for managed files and directories.
 
-When a profile is deactivated all files and directories managed by it are renamed like so: `~/some.file` -> `~/some.file.profile_name.disabled`, when a profile is activated all of it's files are restored to their original names.
+When a profile is deactivated all files and directories managed by it are renamed like so: `~/some.file` -> `~/some.file.profile_name.disabled`, when a profile is activated all of its files are restored to their original names.
 
 This simple principle makes sure the potential for data loss is as low as possible, and no complex operations have to be performed.
 
@@ -82,5 +100,5 @@ This simple principle makes sure the potential for data loss is as low as possib
 
 shrimp will never have git integration, since that requires things like managing alternate file versions, symlinks, scanning for secrets and so on.
 
-But something like chezmoi integration might be added where shrimp can add all of it's managed configs to chezmoi automatically to allow for using it with your dotfiles.
+But something like chezmoi integration might be added where shrimp can add all of its managed configs to chezmoi automatically to allow for using it with your dotfiles.
 
