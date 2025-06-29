@@ -262,7 +262,7 @@ var cli CLI
 func main() {
 	ctx := kong.Parse(&cli,
 		kong.Name("shrimp"),
-		kong.Description("Shrimp is a CLI tool to manage multiple configs with ease."),
+		kong.Description("🦐 shrimp is a CLI tool to manage multiple configs with ease."),
 		kong.UsageOnError(),
 	)
 
