@@ -1,6 +1,6 @@
 # shrimp
 
-<img align="right" src="https://raw.githubusercontent.com/kociumba/shrimp/assets/favicon.svg" alt="klarity icon" width="150" height="150"/>
+<img align="right" src="https://raw.githubusercontent.com/kociumba/shrimp/main/assets/shrimp.svg" alt="shrimp icon" width="150" height="150"/>
 
 shrimp is a minimal cross-platform CLI profile manager for arbitrary files, particularly useful for configs.
 
