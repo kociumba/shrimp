@@ -60,6 +60,7 @@ type ActivateCmd struct {
 }
 
 func (ac *ActivateCmd) Run(globals *Globals) error {
+	s := time.Now()
 	ReadConfig(globals.Config)
 	if ac.Name == c.Active {
 		return fmt.Errorf("profile: %q is already active", ac.Name)
@@ -93,6 +94,12 @@ func (ac *ActivateCmd) Run(globals *Globals) error {
 			return err
 		}
 		return err
+	}
+
+	if !ac.Dry {
+		fmt.Printf("Successfully switched to profile %q, in %v\n", ac.Name, time.Since(s))
+	} else {
+		fmt.Printf("Dry run: would switch to profile %q with no issues detected\n", ac.Name)
 	}
 
 	return nil

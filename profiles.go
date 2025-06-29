@@ -257,11 +257,5 @@ func SwitchToProfile(targetProfile string, force bool, dry bool) error {
 		return fmt.Errorf("failed to activate profile %q: %w", targetProfile, err)
 	}
 
-	if !dry {
-		fmt.Printf("Successfully switched to profile %q", targetProfile)
-	} else {
-		fmt.Printf("Dry run: would switch to profile %q with no issues detected", targetProfile)
-	}
-
 	return nil
 }
