@@ -6,6 +6,8 @@ shrimp is a minimal cross-platform CLI profile manager for arbitrary files, part
 
 Have you ever set up a window manager, and wanted to have multiple configs at once? This is exactly what shrimp solves.
 
+> "real" user: I can't belive it's that shrimple !
+
 shrimp works on the concept of profiles, you create them using:
 
 ```shell
